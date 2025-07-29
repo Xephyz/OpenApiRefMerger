@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace OpenApiRefMerger;
@@ -20,7 +19,6 @@ public static class Utils
 
         if (refPath.StartsWith("#"))
         {
-            // This is a local reference.
             var parts = refPath.Split('/').Skip(1).ToList();
             var current = root;
             foreach (var part in parts)
@@ -39,10 +37,9 @@ public static class Utils
             return current.DeepClone().AsObject();
         }
 
-        var uri = new Uri(Path.GetFullPath(refPath.Split('#')[0]), UriKind.Absolute);
-        Debug.Assert(uri.IsAbsoluteUri);
+        var refFilePath = Path.GetFullPath(refPath.Split('#')[0]);
 
-        var refContent = JsonNode.Parse(File.ReadAllText(uri.LocalPath))!.AsObject();
+        var refContent = JsonNode.Parse(File.ReadAllText(refFilePath))!.AsObject();
         var fragment = refPath.AsSpan().Slice(refPath.IndexOf('#')).ToString();
 
         return FindRef(refContent, fragment);
@@ -50,8 +47,6 @@ public static class Utils
 
     public static void MergeList(JsonArray l, JsonObject root)
     {
-        var cwd = new Uri(Directory.GetCurrentDirectory());
-
         for (var i = 0; i < l.Count; i++)
         {
             if (l[i] is not JsonObject obj)
@@ -66,27 +61,25 @@ public static class Utils
             }
 
             var refPropValue = refProp!.AsValue().ToString();
-            l[i] = FindRef(root, refPropValue);
-            var refPath = new Uri(Path.GetFullPath(refPropValue.Split('#')[0]), UriKind.RelativeOrAbsolute);
-            Debug.Assert(refPath.IsAbsoluteUri);
+            obj.ReplaceWith(FindRef(root, refPropValue));
 
-            if (string.IsNullOrEmpty(refPath.LocalPath))
+            if (refPropValue.StartsWith("#"))
             {
                 MergeDict(obj, root);
+                continue;
             }
-            else
-            {
-                Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath.LocalPath)!);
-                MergeDict(obj, obj);
-                Directory.SetCurrentDirectory(cwd.LocalPath);
-            }
+
+            var cwd = Directory.GetCurrentDirectory();
+            var refPath = Path.GetFullPath(refPropValue.Split('#')[0]);
+
+            Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath)!);
+            MergeDict(obj, obj);
+            Directory.SetCurrentDirectory(cwd);
         }
     }
 
     public static void MergeDict(JsonObject dict, JsonObject root)
     {
-        var cwd = new Uri(Directory.GetCurrentDirectory());
-
         foreach (var kvp in dict)
         {
             if (kvp.Value is JsonArray arr)
@@ -105,11 +98,12 @@ public static class Utils
                     }
                     else
                     {
-                        var refPath = new Uri(Path.GetFullPath(refPropValue.Split('#')[0]), UriKind.RelativeOrAbsolute);
-                        Debug.Assert(refPath.IsAbsoluteUri);
-                        Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath.LocalPath)!);
+                        var cwd = Directory.GetCurrentDirectory();
+
+                        var refPath = Path.GetFullPath(refPropValue.Split('#')[0]);
+                        Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath)!);
                         MergeDict(nestedObj, nestedObj);
-                        Directory.SetCurrentDirectory(cwd.LocalPath);
+                        Directory.SetCurrentDirectory(cwd);
                     }
                 }
                 else
