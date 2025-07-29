@@ -43,8 +43,9 @@ public static class Utils
         Debug.Assert(uri.IsAbsoluteUri);
 
         var refContent = JsonNode.Parse(File.ReadAllText(uri.LocalPath))!.AsObject();
+        var fragment = refPath.AsSpan().Slice(refPath.IndexOf('#')).ToString();
 
-        return FindRef(refContent, uri.Fragment);
+        return FindRef(refContent, fragment);
     }
 
     public static void MergeList(JsonArray l, JsonObject root)
