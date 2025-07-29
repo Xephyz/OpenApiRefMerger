@@ -61,20 +61,23 @@ public static class Utils
             }
 
             var refPropValue = refProp!.AsValue().ToString();
-            obj.ReplaceWith(FindRef(root, refPropValue));
+            var replacement = FindRef(root, refPropValue);
 
             if (refPropValue.StartsWith("#"))
             {
-                MergeDict(obj, root);
-                continue;
+                MergeDict(replacement, root);
+            }
+            else
+            {
+                var cwd = Directory.GetCurrentDirectory();
+                var refPath = Path.GetFullPath(refPropValue.Split('#')[0]);
+
+                Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath)!);
+                MergeDict(replacement, replacement);
+                Directory.SetCurrentDirectory(cwd);
             }
 
-            var cwd = Directory.GetCurrentDirectory();
-            var refPath = Path.GetFullPath(refPropValue.Split('#')[0]);
-
-            Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath)!);
-            MergeDict(obj, obj);
-            Directory.SetCurrentDirectory(cwd);
+            obj.ReplaceWith(replacement);
         }
     }
 
@@ -91,10 +94,10 @@ public static class Utils
                 if (nestedObj.TryGetPropertyValue("$ref", out var refProp))
                 {
                     var refPropValue = refProp!.AsValue().ToString();
-                    nestedObj.ReplaceWith(FindRef(root, refPropValue));
+                    var replacement = FindRef(root, refPropValue);
                     if (refPropValue.StartsWith("#"))
                     {
-                        MergeDict(nestedObj, root);
+                        MergeDict(replacement, root);
                     }
                     else
                     {
@@ -102,9 +105,10 @@ public static class Utils
 
                         var refPath = Path.GetFullPath(refPropValue.Split('#')[0]);
                         Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath)!);
-                        MergeDict(nestedObj, nestedObj);
+                        MergeDict(replacement, replacement);
                         Directory.SetCurrentDirectory(cwd);
                     }
+                    nestedObj.ReplaceWith(replacement);
                 }
                 else
                 {
