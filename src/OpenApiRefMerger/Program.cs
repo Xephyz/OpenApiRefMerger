@@ -1,8 +1,19 @@
 ﻿using System.Text.Json.Nodes;
 
+using CommandLine;
+
 using OpenApiRefMerger;
 
-var filepathArg = args[0];
+var parseResult = Parser.Default.ParseArguments<Options>(args);
+if (parseResult is not Parsed<Options> parsed)
+{
+    Environment.Exit(1);
+    return;
+}
+
+var options = parsed.Value;
+
+var filepathArg = options.FilePath;
 var filepath = Path.GetFullPath(filepathArg);
 var content = File.ReadAllText(filepath);
 
@@ -12,8 +23,19 @@ if (!content.Contains("$ref"))
     return;
 }
 
-var json = JsonNode.Parse(content)!.AsObject();
+var cwd = Directory.GetCurrentDirectory();
 Directory.SetCurrentDirectory(Path.GetDirectoryName(filepath)!);
+var json = JsonNode.Parse(content)!.AsObject();
 Utils.MergeDict(json, json);
+Directory.SetCurrentDirectory(cwd);
 
-Console.WriteLine(json.ToJsonString());
+if (!string.IsNullOrEmpty(options.Output))
+{
+    var outputPath = Path.GetFullPath(options.Output);
+    File.WriteAllText(outputPath, json.ToJsonString());
+    Console.WriteLine($"Merged OpenAPI JSON saved to: {outputPath}");
+}
+else
+{
+    Console.WriteLine(json.ToJsonString());
+}
