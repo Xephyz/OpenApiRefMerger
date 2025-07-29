@@ -26,9 +26,9 @@ public static class Utils
             foreach (var part in parts)
             {
                 if (current!.TryGetPropertyValue(part, out var next) &&
-                    next!.GetValueKind() == JsonValueKind.Object)
+                    next is JsonObject nextObj)
                 {
-                    current = next.AsObject();
+                    current = nextObj;
                 }
                 else
                 {
@@ -53,12 +53,10 @@ public static class Utils
 
         for (var i = 0; i < l.Count; i++)
         {
-            var item = l[i]!;
-            if (item.GetValueKind() is not JsonValueKind.Object)
+            if (l[i] is not JsonObject obj)
             {
                 continue;
             }
-            var obj = item.AsObject();
 
             if (!obj.TryGetPropertyValue("$ref", out var refProp))
             {
@@ -99,17 +97,17 @@ public static class Utils
                 if (nestedObj.TryGetPropertyValue("$ref", out var refProp))
                 {
                     var refPropValue = refProp!.AsValue().ToString();
-                    kvp.Value.ReplaceWith(FindRef(root, refPropValue));
+                    nestedObj.ReplaceWith(FindRef(root, refPropValue));
                     if (refPropValue.StartsWith("#"))
                     {
-                        MergeDict(kvp.Value.AsObject(), root);
+                        MergeDict(nestedObj, root);
                     }
                     else
                     {
                         var refPath = new Uri(Path.GetFullPath(refPropValue.Split('#')[0]), UriKind.RelativeOrAbsolute);
                         Debug.Assert(refPath.IsAbsoluteUri);
                         Directory.SetCurrentDirectory(Path.GetDirectoryName(refPath.LocalPath)!);
-                        MergeDict(kvp.Value.AsObject(), kvp.Value.AsObject());
+                        MergeDict(nestedObj, nestedObj);
                         Directory.SetCurrentDirectory(cwd.LocalPath);
                     }
                 }
