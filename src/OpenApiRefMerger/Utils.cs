@@ -40,7 +40,7 @@ public static class Utils
         var refFilePath = Path.GetFullPath(refPath.Split('#')[0]);
 
         var refContent = JsonNode.Parse(File.ReadAllText(refFilePath))!.AsObject();
-        var fragment = refPath.AsSpan().Slice(refPath.IndexOf('#')).ToString();
+        var fragment = refPath.AsSpan()[refPath.IndexOf('#')..].ToString();
 
         return FindRef(refContent, fragment);
     }
@@ -63,7 +63,7 @@ public static class Utils
             var refPropValue = refProp!.AsValue().ToString();
             var replacement = FindRef(root, refPropValue);
 
-            if (refPropValue.StartsWith("#"))
+            if (refPropValue.StartsWith('#'))
             {
                 MergeDict(replacement, root);
             }
@@ -95,7 +95,7 @@ public static class Utils
                 {
                     var refPropValue = refProp!.AsValue().ToString();
                     var replacement = FindRef(root, refPropValue);
-                    if (refPropValue.StartsWith("#"))
+                    if (refPropValue.StartsWith('#'))
                     {
                         MergeDict(replacement, root);
                     }
