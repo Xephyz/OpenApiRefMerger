@@ -9,4 +9,7 @@ public class Options
 
     [Option('o', "output", Required = false, HelpText = "Path to save the merged OpenAPI JSON file.")]
     public string? Output { get; set; } = null;
+
+    [Option('p', "pretty", Required = false, HelpText = "Format the output JSON with indentation for readability.")]
+    public bool PrettyPrint { get; set; } = false;
 }

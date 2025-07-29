@@ -29,13 +29,18 @@ var json = JsonNode.Parse(content)!.AsObject();
 Utils.MergeDict(json, json);
 Directory.SetCurrentDirectory(cwd);
 
+var jsonSerializerOptions = new System.Text.Json.JsonSerializerOptions
+{
+    WriteIndented = options.PrettyPrint
+};
+
 if (!string.IsNullOrEmpty(options.Output))
 {
     var outputPath = Path.GetFullPath(options.Output);
-    File.WriteAllText(outputPath, json.ToJsonString());
+    File.WriteAllText(outputPath, json.ToJsonString(jsonSerializerOptions));
     Console.WriteLine($"Merged OpenAPI JSON saved to: {outputPath}");
 }
 else
 {
-    Console.WriteLine(json.ToJsonString());
+    Console.WriteLine(json.ToJsonString(jsonSerializerOptions));
 }
